@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>赛博红绿灯</title>
+    <style>
+        @font-face {
+            font-family: "Minecraft-Regular";
+            src: url("Minecraft-Regular.otf");
+        }
+
+        html,
+        body {
+            background: #000;
+            margin: 0;
+            padding: 0;
+        }
+
+        .lights {
+            width: 100%;
+            margin-top: 25%;
+            text-align: center;
+        }
+
+        @media (min-width: 1024px) {
+            .lights {
+                margin-top: 20%;
+            }
+        }
+
+        .light {
+            background: #333;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 4px 20px;
+            display: inline-block;
+            animation: blink 1s infinite;
+        }
+
+        .countdown {
+            text-align: center;
+            width: 100%;
+            height: calc(75% - 300px);
+            font-family: Minecraft-Regular;
+            font-size: 96px;
+            color: #fff;
+            margin: 64px 0 24px 0;
+        }
+
+        .direction {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            padding: 16px;
+            color: #fff;
+            border-radius: 4px;
+        }
+
+        .direction:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .direction:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="lights">
+        <div class="light light-red"></div>
+        <div class="light light-yellow"></div>
+        <div class="light light-green"></div>
+    </div>
+    <div class="countdown"></div>
+    <div class="direction" onclick="direction = (direction == 0) ? 1 : 0; this.innerHTML = '切换方向（' + direction + '）';">
+        切换方向（0）</div>
+    <script>
+        var initialTime;
+        var config;
+        var period;
+        var diff;
+        var direction = 0;
+        var countdown = document.querySelector(".countdown");
+        // 切换颜色，0-灭，1-红，2-黄，3-绿
+        function switchColor(value) {
+            var items = [".light-red", ".light-yellow", ".light-green"];
+            switch (value) {
+                case 0:
+                    var colors = [["#333", "#333", "#333"], "rgba(0, 0, 0, 0)"];
+                    break;
+                case 1:
+                    var colors = [["#F44336", "#333", "#333"], "#F44336"];
+                    break;
+                case 2:
+                    var colors = [["#333", "#FFC107", "#333"], "#FFC107"];
+                    break;
+                case 3:
+                    var colors = [["#333", "#333", "#4CAF50"], "#4CAF50"];
+                    break;
+                default:
+                    break;
+            }
+            items.forEach(function (item, index) {
+                document.querySelector(item).style.backgroundColor = colors[0][index];
+            });
+            countdown.style.color = colors[1];
+        }
+        window.onload = function () {
+            fetch("/api/sync")
+                .then(x => x.json())
+                .then(y => { initialTime = y.initialTime; diff = new Date().getTime() / 1000 - y.currentTime; })
+            fetch("/api/config")
+                .then(x => x.json())
+                .then(y => { config = y; period = config["G_0"] + config["G_1"] + config["Y_0"] + config["Y_1"]; setInterval(run, 100); })
+        }
+        function run() {
+            var _currrntTime = new Date().getTime() / 1000 - diff;
+            var phase = (_currrntTime - initialTime) % period;
+            if (direction == 0) {
+                if (phase >= 0 && phase < config["G_0"]) {
+                    if ((phase >= config["G_0"] - 3 && phase < config["G_0"] - 2.5) || (phase >= config["G_0"] - 2 && phase < config["G_0"] - 1.5) || (phase >= config["G_0"] - 1 && phase < config["G_0"] - 0.5)) {
+                        switchColor(0);
+                    } else {
+                        switchColor(3);
+                    }
+                    countdown.innerHTML = Math.ceil(config["G_0"] - phase);
+                } else if (phase >= config["G_0"] && phase < config["G_0"] + config["Y_0"]) {
+                    switchColor(2);
+                    countdown.innerHTML = Math.ceil(config["G_0"] + config["Y_0"] - phase);
+                } else if (phase >= config["G_0"] + config["Y_0"] && phase < period) {
+                    switchColor(1);
+                    countdown.innerHTML = Math.ceil(period - phase);
+                }
+            } else {
+                if (phase >= 0 && phase < config["G_0"] + config["Y_0"]) {
+                    switchColor(1);
+                    countdown.innerHTML = Math.ceil(config["G_0"] + config["Y_0"] - phase);
+                } else if (phase >= config["G_0"] + config["Y_0"] && phase < config["G_0"] + config["Y_0"] + config["G_1"]) {
+                    if ((phase >= config["G_0"] + config["Y_0"] + config["G_1"] - 3 && phase < config["G_0"] + config["Y_0"] + config["G_1"] - 2.5) || (phase >= config["G_0"] + config["Y_0"] + config["G_1"] - 2 && phase < config["G_0"] + config["Y_0"] + config["G_1"] - 1.5) || (phase >= config["G_0"] + config["Y_0"] + config["G_1"] - 1 && phase < config["G_0"] + config["Y_0"] + config["G_1"] - 0.5)) {
+                        switchColor(0);
+                    } else {
+                        switchColor(3);
+                    }
+                    countdown.innerHTML = Math.ceil(config["G_0"] + config["Y_0"] + config["G_1"] - phase);
+                } else if (phase >= config["G_0"] + config["Y_0"] + config["G_1"] && phase < period) {
+                    switchColor(2);
+                    countdown.innerHTML = Math.ceil(period - phase);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
